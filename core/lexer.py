@@ -1,6 +1,6 @@
 from typing import Iterable
 
-from core.token import Token
+from core.token import Token, get_tokens_in_order
 
 
 class Lexer:
@@ -9,7 +9,7 @@ class Lexer:
 
         self.current_index: int = 0
 
-        self.token_types = Token.get_tokens_in_order()
+        self.token_types = get_tokens_in_order()
 
     def lex(self) -> Iterable[Token]:
         while self.current_index < len(self.code):

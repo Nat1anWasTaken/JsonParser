@@ -17,36 +17,49 @@ class Token(ABC):
     @classmethod
     def match_next(cls, value: str) -> Tuple[Optional["Token"], int]:
         """
-        Check if the value matches the regex, if it does, return the token.
+        Check if the value fit into this token type, if so, return the token and the last index of the token
         :param value:
-        :return: LCurlyBracket and the last index of the token
+        :return: Token and the last index of the token
         """
-        result = cls.regex.search(value)
-
-        if (not result) or (not result.start() == 0):
-            return None, 0
-
-        return cls(result.group(0)), result.end()
-
-    @classmethod
-    def get_tokens_in_order(cls):
-        return sorted(cls.__subclasses__(), key=lambda x: x.priority)
+        raise NotImplementedError
 
 
 class String(Token):
-    regex: Pattern = re.compile(r'".*?"')
     priority: int = 0
 
     def __init__(self, value: str):
         super().__init__(value)
+
+    @classmethod
+    def match_next(cls, value: str) -> Tuple[Optional["Token"], int]:
+        if value.startswith("\""):
+            end_pos = value.find("\"", 1)
+
+            if end_pos == -1:
+                raise ValueError("Invalid string")
+
+            return cls(value[0:end_pos + 1]), end_pos + 1
+
+        return None, 0
 
 
 class Number(Token):
-    regex: Pattern = re.compile(r"\d+")
     priority: int = 0
 
     def __init__(self, value: str):
         super().__init__(value)
+
+    @classmethod
+    def match_next(cls, value: str) -> Tuple[Optional["Token"], int]:
+        if value[0].isdigit():
+            end_pos = 1
+
+            while end_pos < len(value) and value[end_pos].isdigit():
+                end_pos += 1
+
+            return cls(value[0:end_pos]), end_pos
+
+        return None, 0
 
 
 class LCurlyBracket(Token):
@@ -56,21 +69,40 @@ class LCurlyBracket(Token):
     def __init__(self, value: str):
         super().__init__(value)
 
+    @classmethod
+    def match_next(cls, value: str) -> Tuple[Optional["Token"], int]:
+        if value.startswith("{"):
+            return cls("{"), 1
+
+        return None, 0
+
 
 class RCurlyBracket(Token):
-    regex: Pattern = re.compile(r"}")
     priority: int = 1
 
     def __init__(self, value: str):
         super().__init__(value)
+
+    @classmethod
+    def match_next(cls, value: str) -> Tuple[Optional["Token"], int]:
+        if value.startswith("}"):
+            return cls("}"), 1
+
+        return None, 0
 
 
 class LSquareBracket(Token):
-    regex: Pattern = re.compile(r"\[")
     priority: int = 1
 
     def __init__(self, value: str):
         super().__init__(value)
+
+    @classmethod
+    def match_next(cls, value: str) -> Tuple[Optional["Token"], int]:
+        if value.startswith("["):
+            return cls("["), 1
+
+        return None, 0
 
 
 class RSquareBracket(Token):
@@ -80,13 +112,26 @@ class RSquareBracket(Token):
     def __init__(self, value: str):
         super().__init__(value)
 
+    @classmethod
+    def match_next(cls, value: str) -> Tuple[Optional["Token"], int]:
+        if value.startswith("]"):
+            return cls("]"), 1
+
+        return None, 0
+
 
 class Colon(Token):
-    regex: Pattern = re.compile(r":")
     priority: int = 2
 
     def __init__(self, value: str):
         super().__init__(value)
+
+    @classmethod
+    def match_next(cls, value: str) -> Tuple[Optional["Token"], int]:
+        if value.startswith(":"):
+            return cls(":"), 1
+
+        return None, 0
 
 
 class Whitespace(Token):
@@ -95,3 +140,16 @@ class Whitespace(Token):
 
     def __init__(self, value: str):
         super().__init__(value)
+
+    @classmethod
+    def match_next(cls, value: str) -> Tuple[Optional["Token"], int]:
+        match = cls.regex.match(value)
+
+        if match:
+            return cls(match.group()), len(match.group())
+
+        return None, 0
+
+
+def get_tokens_in_order():
+    return sorted(Token.__subclasses__(), key=lambda x: x.priority)
